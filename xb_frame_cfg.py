@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
 ### Run on MC?
-runOnMC = True
+runOnMC = False
 
 process = cms.Process("demo")
 
@@ -34,14 +34,15 @@ if runOnMC:
 else:
     #process.GlobalTag.globaltag = cms.string( 'FT_53_V6_AN2::All' ) #for 2012AB
     #process.GlobalTag.globaltag = cms.string( 'FT_53_V10_AN2::All' )#for 2012C
-    process.GlobalTag.globaltag = cms.string( 'FT_P_V42_AN2::All' ) #for 2012D
+    #process.GlobalTag.globaltag = cms.string( 'FT_P_V42_AN2::All' ) #for 2012D
+    process.GlobalTag.globaltag = cms.string( 'FT_53_V21_AN3::All' )#for 2012ABCD_22Jan2013
 
 
 ### PoolSource will be ignored when running crab
 process.source = cms.Source("PoolSource",
    fileNames = cms.untracked.vstring(
        #'root://eoscms//eos/cms/store/user/pchen/dumpData/MuOnia_Run2012A-13Jul2012-v1_AOD/fetch_1_1_jBm.root'
-       'file:///afs/cern.ch/user/p/pchen/Upsilon2S_RECO_9_1_BHo.root'
+        'file:/raid2/w/kfjack/temp/06377421-0981-E211-B67E-00215E21D93C.root'
    )
 )
 
@@ -125,4 +126,52 @@ process.TFileService = cms.Service("TFileService",
     fileName = cms.string('XbNtuple_all.root')
 )
 
-process.p = cms.Path(process.filter*process.patDefaultSequence*process.demo)
+######################
+###Trigger Matching###
+######################
+
+process.muonTriggerMatchHLTMuons = cms.EDProducer(
+  # matching in DeltaR, sorting by best DeltaR
+  "PATTriggerMatcherDRLessByR"
+  # matcher input collections
+, src     = cms.InputTag( 'selectedPatMuons' )
+, matched = cms.InputTag( 'patTrigger' )
+  # selections of trigger objects
+, matchedCuts = cms.string( 'type( "TriggerMuon" ) && path( "HLT_*" )' )
+  # selection of matches
+, maxDPtRel   = cms.double( 0.5 ) # no effect here
+, maxDeltaR   = cms.double( 0.1 )
+  # definition of matcher output
+, resolveAmbiguities    = cms.bool( True )
+, resolveByMatchQuality = cms.bool( True )
+)
+
+process.muonTriggerMatchHLTMuonsUpsilon = cms.EDProducer(
+  # matching in DeltaR, sorting by best DeltaR
+  "PATTriggerMatcherDRLessByR"
+  # matcher input collections
+, src     = cms.InputTag( 'selectedPatMuons' )
+, matched = cms.InputTag( 'patTrigger' )
+  # selections of trigger objects
+, matchedCuts = cms.string( 'type( "TriggerMuon" ) && path( "HLT_Dimuon7_Upsilon_v*" )' )
+  # selection of matches
+, maxDPtRel   = cms.double( 0.5 ) # no effect here
+, maxDeltaR   = cms.double( 0.1 )
+  # definition of matcher output
+, resolveAmbiguities    = cms.bool( True )
+, resolveByMatchQuality = cms.bool( True )
+)
+
+from PhysicsTools.PatAlgos.tools.trigTools import *
+switchOnTrigger( process ) # This is optional and can be omitted.
+switchOnTriggerMatching( process, triggerMatchers = [ 'muonTriggerMatchHLTMuons','muonTriggerMatchHLTMuonsUpsilon' ] )
+
+process.p = cms.Path(process.filter
+          * process.patDefaultSequence
+          * process.demo)
+
+## Output Module Configuration (expects a path 'p')
+#process.out = cms.OutputModule("PoolOutputModule",
+#                               fileName = cms.untracked.string('patTuple.root'),
+#                               )
+#process.outpath = cms.EndPath(process.out)

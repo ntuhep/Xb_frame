@@ -16,8 +16,10 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/PatCandidates/interface/TriggerEvent.h"
 #include "DataFormats/L1GlobalTrigger/interface/L1GtFdlWord.h"
 #include "FWCore/Common/interface/TriggerNames.h"
+#include "PhysicsTools/PatUtils/interface/TriggerHelper.h"
 
 #include "DataFormats/Candidate/interface/VertexCompositeCandidate.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -224,6 +226,10 @@ void Xb_frame::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     
     //HLT
     edm::Handle<TriggerResults> TrgResultsHandle; //catch triggerresults
+    const pat::helper::TriggerMatchHelper matchHelper;
+    edm::Handle< pat::TriggerEvent > triggerEvent;
+    iEvent.getByLabel( "patTriggerEvent", triggerEvent );
+
     bool with_TriggerResults = iEvent.getByLabel(hltLabel_,TrgResultsHandle);
     if(!with_TriggerResults){//{{{
         std::cout << "Sorry there is no TriggerResult in the file" << std::endl;
@@ -383,6 +389,9 @@ void Xb_frame::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                            ) continue;
                         MuonCutLevel->Fill(6);
 
+                        const pat::TriggerObjectRef trigRef( matchHelper.triggerMatchObject( muons, mu_hindex, "muonTriggerMatchHLTMuons", iEvent, *triggerEvent ) );
+                        const pat::TriggerObjectRef trigRef_Ups( matchHelper.triggerMatchObject( muons, mu_hindex, "muonTriggerMatchHLTMuonsUpsilon", iEvent, *triggerEvent ) );
+
                         MuonInfo.index          [MuonInfo.size] = MuonInfo.size;
                         MuonInfo.handle_index   [MuonInfo.size] = mu_hindex;
 //                      MuonInfo.position       [MuonInfo.size] = distance(input_muons.begin(),mu_it);
@@ -435,9 +444,13 @@ void Xb_frame::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                         }
                         MuonInfo.muqual         [MuonInfo.size] = qm;   
 
+                        //4.trigger matched (Upsilon trigger)
+                        //3.trigger matched (any trigger)
                         //2.tracker hits requirement for MC/2011/2012 soft pion
                         //1.make sure non-zero for binary test
                         //0.pass all cuts
+                        if ( trigRef_Ups.isAvailable() && trigRef_Ups.isNonnull()) MuonInfo.isGoodCand[MuonInfo.size] += (1 << 4); 
+                        if ( trigRef.isAvailable() && trigRef.isNonnull()) MuonInfo.isGoodCand[MuonInfo.size] += (1 << 3); 
                         if (!iEvent.isRealData() || 
                             (iEvent.id().run() < 180297 && mu_it->innerTrack()->hitPattern().numberOfValidStripHits() > 10) || 
                             (iEvent.id().run() > 180296 && mu_it->innerTrack()->hitPattern().trackerLayersWithMeasurement() > 5 )
