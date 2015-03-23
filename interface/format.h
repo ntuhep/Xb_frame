@@ -476,7 +476,7 @@ class XbInfoBranches{//{{{
 
         void setbranchadd(TTree *root){//{{{
             root->SetBranchAddress("XbInfo.uj_size"		    ,&uj_size	);   
-            root->SetBranchAddress("XbInfo.uj_size"		    ,&n_uj	    );   
+            //root->SetBranchAddress("XbInfo.uj_size"		    ,&n_uj	    );   
             root->SetBranchAddress("XbInfo.uj_index"        ,uj_index   ); 
             root->SetBranchAddress("XbInfo.uj_mass"         ,uj_mass   	); 
             root->SetBranchAddress("XbInfo.uj_px"           ,uj_px     	);
